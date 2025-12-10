@@ -133,7 +133,7 @@ python task_1_deep_research/step_2_score.py
 
 ### Task 2 Idea Generation 💡
 
-Comming soon...
+Coming soon...
 
 ### Task 3.1 Dry Experiment (Code Generation) 🖥️
 
