@@ -5,10 +5,11 @@
 </div>
 
 <p align="center">
-  <a href="https://internscience.github.io/SGI-Page/paper.pdf"><b>Paper</b></a> ·
+  <!-- <a href="https://internscience.github.io/SGI-Page/paper.pdf"><b>Paper</b></a> ·
   <a href="https://github.com/InternScience/SGI-Bench"><b>GitHub</b></a> ·
   <a href="https://internscience.github.io/SGI-Page/"><b>Page</b></a> ·
-  <a href="https://huggingface.co/collections/InternScience/sgi-bench"><b>HuggingFace</b></a>
+  <a href="https://huggingface.co/collections/InternScience/sgi-bench"><b>HuggingFace</b></a> -->
+  [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging Face-SGI--Bench-yellow)](https://huggingface.co/collections/InternScience/sgi-bench)&#160;
 </p>
 
 <p align="center">
