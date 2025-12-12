@@ -13,11 +13,11 @@
 
 <div align="center">
 
-[![Official Site](https://img.shields.io/badge/Official%20Site-333399.svg?logo=homepage)](https://tongyi-mai.github.io/Z-Image-blog/)&#160;
+[![Official Site](https://img.shields.io/badge/Official%20Site-333399.svg?logo=homepage)](https://internscience.github.io/SGI-Page/)&#160;
 [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97%20HuggingFace-SGI--Bench-yellow)](https://huggingface.co/collections/InternScience/sgi-bench)&#160;
-[![Art Gallery PDF](https://img.shields.io/badge/%F0%9F%96%BC%20Art_Gallery-PDF-ff69b4)](assets/Z-Image-Gallery.pdf)&#160;
-[![Web Art Gallery](https://img.shields.io/badge/%F0%9F%8C%90%20Web_Art_Gallery-online-00bfff)](https://modelscope.cn/studios/Tongyi-MAI/Z-Image-Gallery/summary)&#160;
-<a href="https://arxiv.org/abs/2511.22699" target="_blank"><img src="https://img.shields.io/badge/Report-b5212f.svg?logo=arxiv" height="21px"></a>
+[![PDF](https://img.shields.io/badge/%F0%9F%96%BC%20PDF-Paper-ff69b4)](https://internscience.github.io/SGI-Page/paper.pdf)&#160;
+[![GitHub](https://img.shields.io/badge/GitHub-000000?logo=github&logoColor=white)](https://github.com/InternScience/SGI-Bench)&#160;
+<!-- <a href="https://arxiv.org/abs/xxxx.xxxxx" target="_blank"><img src="https://img.shields.io/badge/arXiv-b5212f.svg?logo=arxiv" height="21px"></a> -->
 
 Welcome to the official repository for the SGI-Bench!
 
