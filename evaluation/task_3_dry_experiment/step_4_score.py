@@ -3,7 +3,7 @@ import os
 import sys
 from json_repair import repair_json
 sys.path.append('.')
-from utils import LLM, muti_thread
+from utils import LLM, multi_thread
 
 
 save_dir = './task_3_dry_experiment/logs'
@@ -84,7 +84,7 @@ example = {{
 
 
 inp_list = [{'ques_dict': ques} for ques in model_answer]
-out_list = muti_thread(inp_list, eval_model_output, 100)
+out_list = multi_thread(inp_list, eval_model_output, 100)
 
 with open(os.path.join(save_dir, f"{model_name.replace('/', '_')}{discipline}.json"), 'w', encoding='utf-8') as json_file:
     json.dump(out_list, json_file, ensure_ascii=False, indent=4)

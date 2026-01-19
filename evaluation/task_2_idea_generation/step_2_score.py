@@ -12,7 +12,7 @@ from datasets import load_dataset
 import ast
 import time
 sys.path.append('.')
-from utils import LLM, muti_thread
+from utils import LLM, multi_thread
 from utils import format_idea_data, get_context_from_data, get_evaluation_prompt_modified, parse_evaluation_result, flip_evaluation_result
 
 dataset = load_dataset("InternScience/SGI-IdeaGeneration")
@@ -682,7 +682,7 @@ def main():
     logging.info(f"find {len(model_answers)} ideas to evaluate.")
     
     inp_list = [{'ques_dict': ques} for ques in model_answers]
-    out_list = muti_thread(inp_list, evaluate_single_idea, 100)
+    out_list = multi_thread(inp_list, evaluate_single_idea, 100)
     
     output_path = os.path.join(save_dir, f"{model_name.replace('/', '_')}{discipline}_evaluation.json")
     with open(output_path, 'w', encoding='utf-8') as f:

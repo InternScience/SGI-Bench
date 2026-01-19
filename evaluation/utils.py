@@ -15,7 +15,7 @@ from functools import wraps
 import threading
 
 
-def muti_thread(inp_list, function, max_workers=100):
+def multi_thread(inp_list, function, max_workers=100):
     results = [None] * len(inp_list)
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
         future_to_index = {

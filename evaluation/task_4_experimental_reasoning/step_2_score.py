@@ -5,7 +5,7 @@ import sys
 
 from datasets import load_dataset
 sys.path.append('.')
-from utils import VLM, muti_thread
+from utils import VLM, multi_thread
 
 dataset = load_dataset("InternScience/SGI-Reasoning")
 save_dir = './task_4_experimental_reasoning/logs'
@@ -118,7 +118,7 @@ Model Prediction:
 
 
 inp_list = [{'ques_dict': ques} for ques in model_answer]
-out_list = muti_thread(inp_list, eval_model_output, 100)
+out_list = multi_thread(inp_list, eval_model_output, 100)
 
 for idx in range(len(out_list)):
     # unserializable

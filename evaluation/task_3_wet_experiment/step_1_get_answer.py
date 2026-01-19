@@ -2,7 +2,7 @@ import json
 import os
 import sys
 sys.path.append('.')
-from utils import LLM, AnswerPaser, muti_thread, extract_final_answer
+from utils import LLM, AnswerPaser, multi_thread, extract_final_answer
 from datasets import load_dataset
 
 dataset = load_dataset("InternScience/SGI-WetExperiment")
@@ -102,7 +102,7 @@ def get_answer(ques_dict: dict):
     return ques_dict
 
 inp_list = [{"ques_dict": q} for q in dataset['test'] if q['discipline'] in discipline_list]
-out_list = muti_thread(inp_list, get_answer)
+out_list = multi_thread(inp_list, get_answer)
 
 os.makedirs(save_dir, exist_ok=True)
 with open(os.path.join(save_dir, f"{model_name.replace('/', '_')}{discipline}.json"), 'w', encoding='utf-8') as json_file:

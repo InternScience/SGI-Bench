@@ -2,7 +2,7 @@ import json
 import os
 import sys
 sys.path.append('.')
-from utils import LLM, muti_thread
+from utils import LLM, multi_thread
 from datasets import load_dataset
 import re
 from typing import Dict, Any
@@ -169,7 +169,7 @@ def get_answer(ques_dict: dict):
 
 inp_list = [{"ques_dict": q} for q in dataset['test'] if q['discipline'] in discipline_list]
 
-out_list = muti_thread(inp_list, get_answer)
+out_list = multi_thread(inp_list, get_answer)
 
 os.makedirs(save_dir, exist_ok=True)
 output_path = os.path.join(save_dir, f"{model_name.replace('/', '_')}{discipline}.json")
