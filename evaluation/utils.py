@@ -13,6 +13,38 @@ import ast
 import re
 from functools import wraps
 import threading
+from pathlib import Path
+
+
+def load_env_file(env_path=None):
+    if env_path is None:
+        candidates = [
+            Path.cwd() / '.env',
+            Path(__file__).resolve().parent / '.env',
+            Path(__file__).resolve().parent.parent / '.env',
+        ]
+    else:
+        candidates = [Path(env_path)]
+
+    seen = set()
+    for path in candidates:
+        path = path.resolve()
+        if path in seen or not path.exists():
+            continue
+        seen.add(path)
+        with open(path, 'r', encoding='utf-8') as f:
+            for raw_line in f:
+                line = raw_line.strip()
+                if not line or line.startswith('#') or '=' not in line:
+                    continue
+                key, value = line.split('=', 1)
+                key = key.strip()
+                value = value.strip().strip('"').strip("'")
+                if key:
+                    os.environ.setdefault(key, value)
+
+
+load_env_file()
 
 
 def multi_thread(inp_list, function, max_workers=100):
@@ -61,6 +93,46 @@ def extract_final_answer(answer_with_thinking: str, start_tag='<answer>', end_ta
         if end_index != -1:
             return answer_with_thinking[start_index + len(start_tag):end_index].strip()
     return None
+
+
+def extract_response_text(response):
+    if response is None:
+        return None
+    if isinstance(response, str):
+        return response
+    if isinstance(response, dict):
+        if "output_text" in response:
+            return response["output_text"]
+        choices = response.get("choices")
+    else:
+        output_text = getattr(response, "output_text", None)
+        if output_text is not None:
+            return output_text
+        choices = getattr(response, "choices", None)
+
+    if choices:
+        choice = choices[0]
+        if isinstance(choice, dict):
+            message = choice.get("message", {})
+            content = message.get("content") if isinstance(message, dict) else getattr(message, "content", None)
+            if content is not None:
+                return content
+            if "text" in choice:
+                return choice["text"]
+        else:
+            message = getattr(choice, "message", None)
+            if message is not None:
+                content = getattr(message, "content", None)
+                if content is not None:
+                    return content
+            text = getattr(choice, "text", None)
+            if text is not None:
+                return text
+
+    text = getattr(response, "text", None)
+    if text is not None:
+        return text
+    return str(response)
 
 
 def timeout_limit(timeout=None):
@@ -182,7 +254,7 @@ class LLM:
                 max_tokens=max_tokens,
                 temperature=temperature,
             )
-            return response.choices[0].message.content
+            return extract_response_text(response)
 
         elif self.use_responses:
             response = self.client.responses.create(
@@ -191,7 +263,7 @@ class LLM:
                 max_output_tokens=max_tokens,
                 temperature=temperature,
             )
-            return response.output_text
+            return extract_response_text(response)
 
 
 class VLM:
@@ -286,7 +358,7 @@ class VLM:
                 max_tokens=max_tokens,
                 temperature=temperature,
             )
-            return response.choices[0].message.content
+            return extract_response_text(response)
 
         elif self.use_responses:
             image_blocks = []
@@ -308,7 +380,7 @@ class VLM:
                 max_output_tokens=max_tokens,
                 temperature=temperature,
             )
-            return response.output_text
+            return extract_response_text(response)
 
 
 class AnswerPaser:

@@ -24,7 +24,45 @@ with open(os.path.join(save_dir, f"{model_name.replace('/', '_')}{discipline}.js
 
 judge = LLM('o4-mini')
 
+def parse_repaired_json_object(text):
+    start_index = text.find('{')
+    end_index = text.rfind('}') + 1
+    if start_index == -1 or end_index <= start_index:
+        raise ValueError("No JSON object found in judge response.")
+    return json.loads(repair_json(text[start_index:end_index]))
+
+
+def answer_llm_judge(ques_dict, exact_match):
+    if exact_match:
+        return 1, "Exact match."
+
+    prompt = f"""You are a scientific answer evaluator. Compare the agent's answer to the reference answer for the following question.
+
+Question: {ques_dict['question']}
+
+Reference Answer: {ques_dict['answer']}
+
+Agent's Answer: {ques_dict['model_answer']}
+
+Parser-normalized Agent's Answer: {ques_dict.get('model_answer_after_llm_paser', '')}
+
+Evaluate whether the agent's answer is essentially correct. Consider:
+- For numerical answers: accept if within 5% relative error after accounting for obvious units, percentage signs, or formatting differences when the context supports the same meaning
+- For text answers: accept if the meaning is equivalent
+- Partial credit is NOT given - answer is either correct (1) or incorrect (0)
+
+Respond with a JSON object: {{"judge": 0 or 1, "reason": "brief explanation"}}"""
+
+    try:
+        response = judge(prompt)
+        result = parse_repaired_json_object(response)
+        return int(result.get("judge", 0)), result.get("reason", "")
+    except Exception as e:
+        return 0, f"Judge error: {e}"
+
+
 def eval_model_output(ques_dict):
+    reference_steps = '\n'.join(ques_dict['steps'])
     prompt = f"""
 You are an expert in systematically validating and evaluating LLM-generated solutions. Your task is to rigorously analyze the correctness of a provided solution by comparing it step-by-step against the reference solution, and output **only** a structured verification list—with no additional text.
 
@@ -43,7 +81,7 @@ You are an expert in systematically validating and evaluating LLM-generated solu
 {ques_dict['question']}
 
 ## Reference Solution Steps  
-{'\n'.join(ques_dict['steps'])}
+{reference_steps}
 
 ## Reference Answer  
 {ques_dict['answer']}
@@ -60,22 +98,29 @@ You are an expert in systematically validating and evaluating LLM-generated solu
     {{"solution_step": "step content", "reason": "reason of the judgement", "judge": "correct or incorrect"}},
 ]
 """
-    
+
+    exact_match = 1 if (ques_dict['answer'] == ques_dict['model_answer'] or ques_dict['answer'] == ques_dict.get('model_answer_after_llm_paser', '')) else 0
+    llm_judge, llm_judge_reason = answer_llm_judge(ques_dict, exact_match)
+    step_llm_judge = None
+    step_level_acc = 0.0
+
     try:
-        llm_judge = judge(prompt)
-        start_index = llm_judge.find('[')
-        end_index = llm_judge.rfind(']') + 1
-        llm_judge = eval(repair_json(llm_judge[start_index:end_index]))
+        step_llm_judge = judge(prompt)
+        start_index = step_llm_judge.find('[')
+        end_index = step_llm_judge.rfind(']') + 1
+        step_llm_judge = eval(repair_json(step_llm_judge[start_index:end_index]))
         correct_step_count = 0
-        for step in llm_judge:
+        for step in step_llm_judge:
             if step["judge"] == "correct":
                 correct_step_count += 1
-        step_level_acc = correct_step_count / len(llm_judge)
-    except:
-        llm_judge = None
+        step_level_acc = correct_step_count / len(step_llm_judge) if len(step_llm_judge) > 0 else 0.0
+    except Exception as e:
+        step_llm_judge = None
 
-    ques_dict['exact_match'] = 1 if (ques_dict['answer'] == ques_dict['model_answer'] or ques_dict['answer'] == ques_dict['model_answer_after_llm_paser']) else 0
+    ques_dict['exact_match'] = exact_match
     ques_dict['llm_judge'] = llm_judge
+    ques_dict['llm_judge_reason'] = llm_judge_reason
+    ques_dict['step_llm_judge'] = step_llm_judge
     ques_dict['step_level_acc'] = step_level_acc
     return ques_dict
 
@@ -89,4 +134,5 @@ with open(os.path.join(save_dir, f"{model_name.replace('/', '_')}{discipline}.js
 
 print(model_name)
 print(f"Exact Match: {sum([item['exact_match'] for item in out_list])/len(out_list)}")
+print(f"LLM Judge: {sum([item['llm_judge'] for item in out_list])/len(out_list)}")
 print(f"Step Level Acc: {sum([item['step_level_acc'] for item in out_list])/len(out_list)}")
