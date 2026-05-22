@@ -75,13 +75,145 @@ def identify_variable_types(steps):
             # If input_val is a string and does not start and end with quotes, and is not purely numeric, consider it a variable
             if isinstance(input_val, str) and \
                not (input_val.startswith('"') and input_val.endswith('"')) and \
-               not (input_val.replace('.', '', 1).isdigit() or (input_val.startswith('-') and input_val[1:].replace('.', '', 1).isdigit())):
+               not is_numeric_literal(input_val):
                 all_input_vars.add(input_val)
 
     # Raw variables are those input variables that are not in the set of output variables of any step
     original_vars = all_input_vars - generated_vars
 
     return original_vars, generated_vars, output_to_step_map
+
+
+def normalize_action(action):
+    return re.sub(r'\s+', ' ', action.strip().lower())
+
+
+def is_numeric_literal(value):
+    return isinstance(value, str) and (
+        value.replace('.', '', 1).isdigit() or
+        (value.startswith('-') and value[1:].replace('.', '', 1).isdigit())
+    )
+
+
+def align_action_steps(gt_steps, pred_steps):
+    gt_actions = [normalize_action(step["action"]) for step in gt_steps]
+    pred_actions = [normalize_action(step["action"]) for step in pred_steps]
+    n = len(gt_actions)
+    m = len(pred_actions)
+    dp = [[0] * (m + 1) for _ in range(n + 1)]
+
+    for i in range(n):
+        for j in range(m):
+            if gt_actions[i] == pred_actions[j]:
+                dp[i + 1][j + 1] = max(dp[i + 1][j + 1], dp[i][j] + 1)
+            dp[i + 1][j + 1] = max(dp[i + 1][j + 1], dp[i][j + 1], dp[i + 1][j])
+
+    aligned_pairs = []
+    i = n
+    j = m
+    while i > 0 and j > 0:
+        if gt_actions[i - 1] == pred_actions[j - 1] and dp[i][j] == dp[i - 1][j - 1] + 1:
+            aligned_pairs.append((i - 1, j - 1))
+            i -= 1
+            j -= 1
+        elif dp[i - 1][j] >= dp[i][j - 1]:
+            i -= 1
+        else:
+            j -= 1
+
+    return list(reversed(aligned_pairs))
+
+
+def score_aligned_parameters(gt_steps, pred_steps, aligned_pairs):
+    _, generated_vars_gt, _ = identify_variable_types(gt_steps)
+    _, generated_vars_pred, _ = identify_variable_types(pred_steps)
+    var_map_pred2gt = {}
+    total_score = 0.0
+
+    for gt_idx, pred_idx in aligned_pairs:
+        step_gt = gt_steps[gt_idx]
+        step_pred = pred_steps[pred_idx]
+        keys_gt = set(step_gt["input"].keys())
+        keys_pred = set(step_pred["input"].keys())
+        shared_keys = keys_gt & keys_pred
+
+        if not keys_gt and not keys_pred:
+            key_score = 1.0
+        else:
+            key_score = (2 * len(shared_keys)) / (len(keys_gt) + len(keys_pred))
+
+        if not shared_keys:
+            value_score = 1.0 if not keys_gt and not keys_pred else 0.0
+        else:
+            correct_values = 0
+            for key in shared_keys:
+                value_gt = step_gt["input"][key]
+                value_pred = step_pred["input"][key]
+                gt_is_generated = value_gt in generated_vars_gt
+                pred_is_generated = value_pred in generated_vars_pred
+
+                if gt_is_generated and pred_is_generated:
+                    correct_values += int(var_map_pred2gt.get(value_pred) == value_gt)
+                elif not gt_is_generated and not pred_is_generated:
+                    correct_values += 1
+
+            value_score = correct_values / len(shared_keys)
+
+        total_score += key_score * value_score
+        var_map_pred2gt[step_pred["output"]] = step_gt["output"]
+
+    return total_score
+
+
+def compare_exp_steps_soft(gt_steps, pred_steps):
+    """
+    Rule-based soft score for workflows with different numbers of steps.
+    Actions are aligned by LCS. The sequence score is action recall times
+    action precision, so missing and extra steps are both penalized.
+    Parameter score uses the same recall/precision form over aligned steps.
+    """
+    aligned_pairs = align_action_steps(gt_steps, pred_steps)
+    gt_step_count = len(gt_steps)
+    pred_step_count = len(pred_steps)
+    matched_action_count = len(aligned_pairs)
+    length_gap = abs(len(gt_steps) - len(pred_steps))
+    if gt_step_count == 0 and pred_step_count == 0:
+        action_sequence_similarity = 1.0
+        parameter_acc = 1.0
+        action_recall = 1.0
+        action_precision = 1.0
+        parameter_recall = 1.0
+        parameter_precision = 1.0
+    elif gt_step_count == 0 or pred_step_count == 0:
+        action_sequence_similarity = 0.0
+        parameter_acc = 0.0
+        action_recall = 0.0
+        action_precision = 0.0
+        parameter_recall = 0.0
+        parameter_precision = 0.0
+    else:
+        action_recall = matched_action_count / gt_step_count
+        action_precision = matched_action_count / pred_step_count
+        action_sequence_similarity = action_recall * action_precision
+        parameter_score = score_aligned_parameters(gt_steps, pred_steps, aligned_pairs)
+        parameter_recall = parameter_score / gt_step_count
+        parameter_precision = parameter_score / pred_step_count
+        parameter_acc = parameter_recall * parameter_precision
+
+    return {
+        "action_sequence_similarity": action_sequence_similarity,
+        "parameter_acc": parameter_acc,
+        "matched_action_count": matched_action_count,
+        "gt_step_count": gt_step_count,
+        "pred_step_count": pred_step_count,
+        "missing_action_count": gt_step_count - matched_action_count,
+        "extra_action_count": pred_step_count - matched_action_count,
+        "length_gap": length_gap,
+        "action_recall": action_recall,
+        "action_precision": action_precision,
+        "parameter_recall": parameter_recall,
+        "parameter_precision": parameter_precision,
+    }
 
 
 def compare_exp_steps(gt_steps, pred_steps):
@@ -242,6 +374,7 @@ for ques_dict in model_answer:
     prediction_steps = parse_experiment_steps(prediction_steps)
 
     result = compare_exp_steps(target_steps, prediction_steps)
+    soft_result = compare_exp_steps_soft(target_steps, prediction_steps)
     # print("Order similarity:", result["order_similarity"])
     # print("Parameter accuracy:", result["parameter_acc"])
     # for detail in result["details"]:
@@ -251,10 +384,39 @@ for ques_dict in model_answer:
     ques_dict['action_sequence_similarity'] = result['order_similarity']
     ques_dict['parameter_accuracy'] = result['parameter_acc']
     ques_dict['final_score'] = (ques_dict['action_sequence_similarity']+ques_dict['parameter_accuracy'])/2
+    ques_dict['action_sequence_similarity_strict'] = ques_dict['action_sequence_similarity']
+    ques_dict['parameter_accuracy_strict'] = ques_dict['parameter_accuracy']
+    ques_dict['final_score_strict'] = ques_dict['final_score']
+    ques_dict['soft_action_sequence_similarity'] = soft_result['action_sequence_similarity']
+    ques_dict['soft_parameter_accuracy'] = soft_result['parameter_acc']
+    ques_dict['soft_final_score'] = (
+        ques_dict['soft_action_sequence_similarity'] + ques_dict['soft_parameter_accuracy']
+    ) / 2
+    ques_dict['gt_step_count'] = soft_result['gt_step_count']
+    ques_dict['pred_step_count'] = soft_result['pred_step_count']
+    ques_dict['soft_matched_action_count'] = soft_result['matched_action_count']
+    ques_dict['soft_missing_action_count'] = soft_result['missing_action_count']
+    ques_dict['soft_extra_action_count'] = soft_result['extra_action_count']
+    ques_dict['soft_length_gap'] = soft_result['length_gap']
+    ques_dict['soft_action_recall'] = soft_result['action_recall']
+    ques_dict['soft_action_precision'] = soft_result['action_precision']
+    ques_dict['soft_parameter_recall'] = soft_result['parameter_recall']
+    ques_dict['soft_parameter_precision'] = soft_result['parameter_precision']
 
 with open(os.path.join(save_dir, f"{model_name.replace('/', '_')}{discipline}.json"), 'w', encoding='utf-8') as json_file:
     json.dump(model_answer, json_file, ensure_ascii=False, indent=4)
 
 print(model_name)
-print(f"Action Sequence Similarity: {sum([item['action_sequence_similarity'] for item in model_answer])/len(model_answer)}")
-print(f"Parameter Accuracy: {sum([item['parameter_accuracy'] for item in model_answer])/len(model_answer)}")
+length_mismatch_count = sum(item['gt_step_count'] != item['pred_step_count'] for item in model_answer)
+soft_nonzero_mismatch_count = sum(
+    item['gt_step_count'] != item['pred_step_count'] and item['soft_action_sequence_similarity'] > 0
+    for item in model_answer
+)
+print(f"Strict Action Sequence Similarity: {sum([item['action_sequence_similarity'] for item in model_answer])/len(model_answer)}")
+print(f"Strict Parameter Accuracy: {sum([item['parameter_accuracy'] for item in model_answer])/len(model_answer)}")
+print(f"Strict Final Score: {sum([item['final_score'] for item in model_answer])/len(model_answer)}")
+print(f"Soft Action Sequence Similarity: {sum([item['soft_action_sequence_similarity'] for item in model_answer])/len(model_answer)}")
+print(f"Soft Parameter Accuracy: {sum([item['soft_parameter_accuracy'] for item in model_answer])/len(model_answer)}")
+print(f"Soft Final Score: {sum([item['soft_final_score'] for item in model_answer])/len(model_answer)}")
+print(f"Length Mismatches: {length_mismatch_count}/{len(model_answer)}")
+print(f"Length Mismatches with Non-zero Soft ASS: {soft_nonzero_mismatch_count}/{length_mismatch_count}")
