@@ -8,14 +8,13 @@ from typing import Dict, Any, List
 import sys
 import networkx as nx
 from sentence_transformers import SentenceTransformer
-from datasets import load_dataset
 import ast
 import time
 sys.path.append('.')
 from utils import LLM, multi_thread
-from utils import format_idea_data, get_context_from_data, get_evaluation_prompt_modified, parse_evaluation_result, flip_evaluation_result
+from utils import format_idea_data, get_context_from_data, get_evaluation_prompt_modified, parse_evaluation_result, flip_evaluation_result, load_sgi_dataset
 
-dataset = load_dataset("InternScience/SGI-IdeaGeneration")
+dataset = load_sgi_dataset("InternScience/SGI-IdeaGeneration")
 save_dir = './task_2_idea_generation/logs'
 model_name = "gpt-4.1"
 discipline = "['all']"

@@ -2,10 +2,9 @@ import json
 import os
 import sys
 sys.path.append('.')
-from utils import VLM, multi_thread
-from datasets import load_dataset
+from utils import VLM, multi_thread, load_sgi_dataset
 
-dataset = load_dataset("InternScience/SGI-Reasoning")
+dataset = load_sgi_dataset("InternScience/SGI-Reasoning")
 save_dir = './task_4_experimental_reasoning/logs'
 model_name = 'gpt-4.1'
 discipline = "['all']"

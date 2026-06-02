@@ -31,6 +31,8 @@ Scientist-aligned benchmark for evaluating Scientific General Intelligence (SGI)
 
 ## 🆕 Latest News
 
+🚩 **Update** (2026-06-02) SGI-Bench datasets on Hugging Face are now gated to prevent evaluated agents from finding benchmark questions through web search. Access is automatic after agreeing to share contact information; set `HF_TOKEN` with a read-only Hugging Face token before running evaluations.
+
 🚩 **Update** (2025-12-22) We release SGI-Bench [paper](https://arxiv.org/pdf/2512.16969) on arXiv.
 
 🚩 **Update** (2025-12-19) SGI-Bench is adapted to [VLMEvalKit](https://github.com/open-compass/VLMEvalKit/pull/1358) and [SciEvalKit](https://github.com/InternScience/SciEvalKit), both of which are highly efficient and comprehensive evaluation toolkits.
@@ -151,11 +153,19 @@ cd SGI-Bench/evaluation
 
 export OPENAI_API_KEY="xxxxx"
 export OPENAI_BASE_URL="xxxxx"
+export HF_TOKEN="hf_xxxxx"
 
 conda create -n sgi python=3.13.7
 conda activate sgi
 pip install -r requirements.txt
 ```
+
+SGI-Bench datasets are gated on Hugging Face. Log in, open the dataset page,
+and click the button to agree to share your contact information. This is
+automatic and does not require manual approval; the gate only prevents evaluated
+agents from directly finding benchmark questions through web search. To get a
+token quickly, create a read-only token at
+https://huggingface.co/settings/tokens and set it as `HF_TOKEN`.
 
 ### 📚 Task 1 Deep Research
 

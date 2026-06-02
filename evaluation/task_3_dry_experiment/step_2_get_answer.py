@@ -2,10 +2,9 @@ import json
 import os
 import sys
 sys.path.append('.')
-from utils import LLM, AnswerPaser, multi_thread, extract_final_answer, replace_function
-from datasets import load_dataset
+from utils import LLM, AnswerPaser, multi_thread, extract_final_answer, replace_function, load_sgi_dataset
 
-dataset = load_dataset("InternScience/SGI-DryExperiment")
+dataset = load_sgi_dataset("InternScience/SGI-DryExperiment")
 save_dir = './task_3_dry_experiment/logs'
 model_name = 'gpt-4.1'
 discipline = "['all']"

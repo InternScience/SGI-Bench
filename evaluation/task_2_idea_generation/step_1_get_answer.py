@@ -2,12 +2,11 @@ import json
 import os
 import sys
 sys.path.append('.')
-from utils import LLM, multi_thread
-from datasets import load_dataset
+from utils import LLM, multi_thread, load_sgi_dataset
 import re
 from typing import Dict, Any
 
-dataset = load_dataset("InternScience/SGI-IdeaGeneration")
+dataset = load_sgi_dataset("InternScience/SGI-IdeaGeneration")
 save_dir = './task_2_idea_generation/logs'
 model_name = 'gpt-4.1'
 discipline = "['all']"

@@ -47,6 +47,53 @@ def load_env_file(env_path=None):
 load_env_file()
 
 
+HF_TOKEN_ENV_VAR = "HF_TOKEN"
+
+HF_DATASET_ACCESS_GUIDE = """
+SGI-Bench datasets on Hugging Face are gated and require an access token.
+
+Why the gate exists:
+- Open the dataset page while logged in and click the button to agree to share
+  your contact information. This is automatic; there is no manual approval wait.
+- The gate is only used to keep benchmark agents from directly finding the
+  held-out questions through web search during evaluation.
+
+Fast setup:
+1. Visit https://huggingface.co/settings/tokens
+2. Click "New token", choose a read-only token, and copy it.
+3. Add it to your shell or .env file:
+   export HF_TOKEN="hf_your_read_token"
+
+If you still cannot load the dataset, open the dataset page in a browser while
+logged in and click "Agree and access repository" once.
+""".strip()
+
+
+def get_hf_token():
+    token = os.environ.get(HF_TOKEN_ENV_VAR) or os.environ.get("HUGGINGFACE_HUB_TOKEN")
+    if token:
+        return token
+    raise EnvironmentError(f"Missing {HF_TOKEN_ENV_VAR}.\n\n{HF_DATASET_ACCESS_GUIDE}")
+
+
+def load_sgi_dataset(path, **kwargs):
+    # All SGI-Bench datasets are gated on Hugging Face. The gate is automatic
+    # and only prevents evaluated agents from finding benchmark questions via
+    # web search; users just need to agree once on the dataset page and provide
+    # a read-only HF_TOKEN from https://huggingface.co/settings/tokens.
+    from datasets import load_dataset
+
+    token = get_hf_token()
+    try:
+        return load_dataset(path, token=token, **kwargs)
+    except Exception as e:
+        raise RuntimeError(
+            f"Failed to load gated SGI-Bench dataset: {path}\n\n"
+            f"{HF_DATASET_ACCESS_GUIDE}\n\n"
+            f"Original error: {e}"
+        ) from e
+
+
 def multi_thread(inp_list, function, max_workers=100):
     results = [None] * len(inp_list)
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:

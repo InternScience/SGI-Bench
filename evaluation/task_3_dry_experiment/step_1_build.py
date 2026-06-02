@@ -1,12 +1,11 @@
 import os
 from tqdm import tqdm
-from datasets import load_dataset
 import subprocess
 import sys
 import shutil
 from pathlib import Path
 sys.path.append('./')
-from utils import multi_process
+from utils import multi_process, load_sgi_dataset
 
 env = os.environ.copy()
 env["PYTHONIOENCODING"] = "utf-8"
@@ -56,7 +55,7 @@ def run_script_in_folder(folder_path):
     return result
 
 
-dataset = load_dataset("InternScience/SGI-DryExperiment")
+dataset = load_sgi_dataset("InternScience/SGI-DryExperiment")
 save_dir = './task_3_dry_experiment/codes'
 os.makedirs(save_dir, exist_ok=True)
 
