@@ -279,8 +279,6 @@ If you would like to cite our work, please use the following BibTeX.
 
 If you find this work helpful, please consider to **star⭐** this [repo](https://github.com/InternScience/SGI-Bench). Thanks for your support! 🤩
 
-[![InternScience/SGI-Bench Stargazers](https://reporoster.com/stars/InternScience/SGI-Bench)](https://github.com/InternScience/SGI-Bench/stargazers)
-
-[![Star History Chart](https://api.star-history.com/svg?repos=InternScience/SGI-Bench,TIGER-AI-Lab/MMLU-Pro,MMMU-Benchmark/MMMU,idavidrein/gpqa,SuperGPQA/SuperGPQA&type=date&legend=top-left)](https://www.star-history.com/#InternScience/SGI-Bench&TIGER-AI-Lab/MMLU-Pro&MMMU-Benchmark/MMMU&idavidrein/gpqa&SuperGPQA/SuperGPQA&type=date&legend=top-left)
+[![Star History Chart](https://api.star-history.com/svg?repos=InternScience/SGI-Bench&type=date&legend=top-left)](https://www.star-history.com/#InternScience/SGI-Bench&type=date)
 
 <p align="right"><a href="#top">🔝Back to top</a></p>
